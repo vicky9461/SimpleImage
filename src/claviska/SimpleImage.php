@@ -537,6 +537,47 @@ class SimpleImage {
     return $this->resize($width, $height);
   }
 
+  /*
+  * image crop position 
+  */
+  function cropAlign($image, $cropWidth, $cropHeight, $horizontalAlign = 'center', $verticalAlign = 'middle') {
+        $width = imagesx($image);
+        $height = imagesy($image);
+
+        $horizontalAlignPixels = calculatePixelsForAlign($width, $cropWidth, $horizontalAlign);
+        $verticalAlignPixels = calculatePixelsForAlign($height, $cropHeight, $verticalAlign);    
+        return imageCrop($image, [
+            'x' => $horizontalAlignPixels[0],
+            'y' => $verticalAlignPixels[0],
+            'width' => $horizontalAlignPixels[1],
+            'height' => $verticalAlignPixels[1]
+        ]);
+
+    }
+    
+    function calculatePixelsForAlign($imageSize, $cropSize, $align) {
+        switch ($align) {
+            case 'left':
+            case 'top':
+                return [0, min($cropSize, $imageSize)];
+            case 'right':
+            case 'bottom':
+                return [max(0, $imageSize - $cropSize), min($cropSize, $imageSize)];
+            case 'center':
+            case 'middle':
+                return [
+                max(0, floor(($imageSize / 2) - ($cropSize / 2))),
+                min($cropSize, $imageSize),
+                ];
+            default: return [0, $imageSize];
+        }
+    }
+  
+  
+  
+  
+  
+  
   //
   // Crop the image.
   //
@@ -544,20 +585,28 @@ class SimpleImage {
   //  $y1 - Top left y coordinate.
   //  $x2 - Bottom right x coordinate.
   //  $y2 - Bottom right x coordinate.
-  //
+  //  $H_align - horizontal align 
+  //  $V_align - vertical align
   // Returns a SimpleImage object.
   //
-  public function crop($x1, $y1, $x2, $y2) {
+  public function crop($x1, $y1, $x2, $y2, $H_align="center" , $V_align="middle") {
     // Keep crop within image dimensions
     $x1 = self::keepWithin($x1, 0, $this->getWidth());
     $x2 = self::keepWithin($x2, 0, $this->getWidth());
     $y1 = self::keepWithin($y1, 0, $this->getHeight());
     $y2 = self::keepWithin($y2, 0, $this->getHeight());
 
+    // crop position
+    $img_crop_coordinates = $this->cropAlign($this->image, $crop_width, $crop_height, $H_align, $V_align);
+        
+    // First coordinates 
+    $x1 = $img_crop_coordinates['x'];
+    $y1 = $img_crop_coordinates['y'];
+    
     // Crop it
     $this->image = imagecrop($this->image, [
-      'x' => min($x1, $x2),
-      'y' => min($y1, $y2),
+      'x' => $x1,
+      'y' => $y1,
       'width' => abs($x2 - $x1),
       'height' => abs($y2 - $y1)
     ]);
